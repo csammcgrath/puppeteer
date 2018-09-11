@@ -8,6 +8,12 @@ const functions = [
 ];
 var isAuthenticated = false;
 
+/**
+ * start(data)
+ * @param {object} data username and password given to us by user
+ * 
+ * This function iterates through all of the preselected courses.
+ **/
 async function start(data) {
    let courses = [
       10011,
@@ -16,6 +22,17 @@ async function start(data) {
    await courses.map(async course => await launchPuppeteer(data, course));
 }
 
+/**
+ * promptUser(promptUserCallback)
+ * @param {callback} promptUserCallback the callback to pass the data object to
+ * 
+ * This function prompts the user for the username and password to use
+ * for the program.
+ * 
+ * TODO
+ * - Add checking for environment variables so user doesn't have to insert
+ * multiple times
+ **/
 function promptUser(promptUserCallback) {
    let schema = {
       properties: {
@@ -44,6 +61,14 @@ function promptUser(promptUserCallback) {
    });
 }
 
+/**
+ * launchPuppeteer(data, url)
+ * @param {object} data username and password given to us by user
+ * @param {int} url the course id
+ * 
+ * This function goes through and call different functions to get
+ * the job done
+ **/
 async function launchPuppeteer(data, url) {
    const browser = await puppeteer.launch();
    const page = await browser.newPage();
@@ -51,17 +76,23 @@ async function launchPuppeteer(data, url) {
    if (!isAuthenticated) await authenticate(page, data);
 
    let updatedUrl = `${path}/${url}/Home`;
+
    await page.goto(updatedUrl);
-
-
-   await page.screenshot({
-      path: 'screenshot.png'
-   });
-   console.log('Screenshot inserted');
-
+   await getScreenshot(page);
+   await getPDF(page)
    await browser.close();
 }
 
+/**
+ * authenticate(page, data)
+ * @param {Page} page the current page we are on
+ * @param {object} data username and password given to us by user
+ * 
+ * This function goes through the authentication phase.
+ * 
+ * TODO: 
+ * - Error handling -> wrong user information
+ **/
 async function authenticate(page, data) {
    console.log('Authenticating...')
 
@@ -82,6 +113,37 @@ async function authenticate(page, data) {
    console.log('Authenticated.');
 }
 
+/**
+ * getScreenshot(page)
+ * @param {Page} page the current page we are on
+ * 
+ * This function calls the puppeteer api to take 
+ * a screenshot.
+ **/
+async function getScreenshot(page) {
+   await page.screenshot({
+      path: 'screenshot.png'
+   });
+   console.log('Screenshot inserted');
+}
+
+/**
+ * getPDF(page)
+ * @param {Page} page the current page we are on
+ * 
+ * This function calls the puppeteer api to convert 
+ * the headless Chromium to mobile format and then 
+ * converts it to pdf.
+ **/
+async function getPDF(page) {
+   await page.emulateMedia('screen');
+   await page.pdf({
+      path: 'page.pdf'
+   });
+
+   console.log('PDF inserted');
+}
+
 asyncLib.waterfall(functions, (waterfallErr, results) => {
    if (waterfallErr) {
       console.log(`Error: ${waterfallErr}`);
@@ -90,4 +152,5 @@ asyncLib.waterfall(functions, (waterfallErr, results) => {
    console.log('Success');
 });
 
-//
+//selectors
+//d2l-button d2l-loadmore-pager <=== load more button
