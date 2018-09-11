@@ -1,7 +1,7 @@
 const prompt = require('prompt');
 const puppeteer = require('puppeteer');
 const asyncLib = require('async');
-const path = 'https://byui.brightspace.com/d2l/home';
+const path = 'https://byui.brightspace.com/d2l/le/content';
 const functions = [
    promptUser,
    start
@@ -48,39 +48,38 @@ async function launchPuppeteer(data, url) {
    const browser = await puppeteer.launch();
    const page = await browser.newPage();
 
-   if (!isAuthenticated) {
-      console.log('Authenticating...')
+   if (!isAuthenticated) await authenticate(page, data);
 
-      //begin authentication
-      let tempUrl = 'https://byui.brightspace.com/d2l/login?noredirect=true';
-      await page.goto(tempUrl);
+   let updatedUrl = `${path}/${url}/Home`;
+   await page.goto(updatedUrl);
 
-      //insert information submitted by user
-      await page.evaluate(data => {
-         document.querySelector('#userName').value = data.user;
-         document.querySelector('#password').value = data.password;
-         document.querySelector('.d2l-button').click();
-      }, data);
-
-      //TODO: add error handling here!
-      await page.waitForNavigation();
-      console.log(`URL: ${page.url()}`);
-      console.log('Authenticated.');
-      isAuthenticated = true;
-   }
 
    await page.screenshot({
       path: 'screenshot.png'
    });
    console.log('Screenshot inserted');
 
-   // let updatedUrl = `${path}/${url}`;
-
-   // await page.goto(updatedUrl);
-   // await page.waitForNavigation();
-   // console.log(`URL: ${page.url()}`);
-
    await browser.close();
+}
+
+async function authenticate(page, data) {
+   console.log('Authenticating...')
+
+   //begin authentication
+   let tempUrl = 'https://byui.brightspace.com/d2l/login?noredirect=true';
+   await page.goto(tempUrl);
+
+   //insert information submitted by user
+   await page.evaluate(data => {
+      document.querySelector('#userName').value = data.user;
+      document.querySelector('#password').value = data.password;
+      document.querySelector('.d2l-button').click();
+   }, data);
+
+   //TODO: add error handling here!
+   await page.waitForSelector('body > header > nav > div.d2l-navigation-s-main.d2l-navigation-main-tb > div > div > div');
+   isAuthenticated = true;
+   console.log('Authenticated.');
 }
 
 asyncLib.waterfall(functions, (waterfallErr, results) => {
@@ -90,3 +89,5 @@ asyncLib.waterfall(functions, (waterfallErr, results) => {
 
    console.log('Success');
 });
+
+//
